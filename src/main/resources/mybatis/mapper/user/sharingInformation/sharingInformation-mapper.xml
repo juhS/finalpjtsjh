@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- DTD 선언 -->
+<!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 
+	mapper라는 영역 안에 구문을 작성한다
+	- namespace : mapper간의 충돌을 방지 하기 위한 이름 (필수)
+-->
+<mapper namespace="sharing">
+	
+	<!-- 
+		데이터베이스 이용에 필요한 구문을 작성는 영역
+		- 가급적 한 테이블만 접근하도록 구성
+		- CRUD에 맞는 태그를 사용 
+			- C : insert
+			- R : select
+			- U : update
+			- D : delete
+			
+		- id : 외부에서 구문을 호출하기 위한 식별자(namespace와 같이 사용) - 필수
+		- parameterType : 구문 실행을 위해 전달되는 데이터의 형태(별칭 사용 가능, alias)
+		- resultType : 결과물(ResultSet)이 변환될 형태. 단일/목록 모두 단위 형태를 기재
+		
+		- #{name} : 전달되는 데이터 묶음에서 name이라는 이름을 가진 데이터를 형태에 맞게 채워라(동적 바인딩). name은 변할 수 있음
+	-->
+	<!-- 전사공지 게시판 글 등록 -->
+	<insert id="insert">
+		INSERT INTO BOARD(
+                           BOARD_ID
+                         , BOARD_TITLE
+                         , BOARD_CREATE_DATE
+                         , BOARD_CONTENT
+                         , BOARD_HITS
+                         , BOARD_STATUS
+                         , BOARD_DEVIDE_ID
+                         , USER_ID
+                         , TOP_FIXED
+						)
+					VALUES(
+						   BOARD_SEQ.NEXTVAL  
+						  ,#{board_title}
+						  ,SYSDATE
+						  ,#{board_content}
+						  ,0
+                		  ,'Y' 
+                		  ,'1' 
+                		  ,#{user_id}
+                		  ,#{top_fixed}
+					)
+	</insert>
+	
+	<!-- 전사공지 게시글 목록조회 -->
+	<select id="list" resultType="sharing">
+			SELECT  BOARD_ID
+			       ,BOARD_TITLE
+			       ,USER_NAME
+			       ,BOARD_CREATE_DATE
+			       ,BOARD_HITS
+           		   ,TOP_FIXED
+			  FROM BOARD
+			  JOIN USERCLIENT
+			    ON BOARD.USER_ID = USERCLIENT.USER_ID
+			  WHERE BOARD_DEVIDE_ID=1
+			  ORDER BY BOARD_ID DESC
+	</select>
+	
+	
+		<!-- 전사공지 게시글 목록조회2 -->
+	<select id="search" resultType="sharing">
+			SELECT  BOARD_ID
+			       ,BOARD_TITLE
+			       ,USER_NAME
+			       ,BOARD_CREATE_DATE
+			       ,BOARD_HITS
+           		   ,TOP_FIXED
+			  FROM BOARD
+			  JOIN USERCLIENT
+			    ON BOARD.USER_ID = USERCLIENT.USER_ID
+			  WHERE BOARD_DEVIDE_ID=1
+			  <if test="board_title !=''">
+			   AND BOARD_TITLE LIKE '%'||#{search}||'%'
+			</if>
+			  ORDER BY BOARD_ID DESC
+	</select>
+	
+	
+	
+	<!-- 전사공지 게시글 목록 상세조회 -->
+	<select id="read" parameterType="int" resultType="sharing">
+		 SELECT  BOARD_ID
+	            ,BOARD_TITLE
+	            ,USER_NAME
+	            ,BOARD_CREATE_DATE
+	            ,BOARD_CONTENT
+	            ,TOP_FIXED
+	            ,BOARD_DEVIDE_ID
+		  FROM BOARD
+		  JOIN USERCLIENT
+		  ON BOARD.USER_ID = USERCLIENT.USER_ID
+		  WHERE BOARD_DEVIDE_ID = 1
+		  AND BOARD_ID=#{board_id}
+	</select>
+	
+ 	<!-- 전사공지 게시글 수정하기 -->	
+	<update id="update">
+		UPDATE BOARD
+		   SET BOARD_TITLE = #{board_title},
+		       TOP_FIXED=#{top_fixed},
+		       BOARD_CONTENT=#{board_content}
+		 WHERE BOARD_DEVIDE_ID=1
+		   AND BOARD_ID= #{board_id}
+	</update> 
+	
+	<!-- 전사공지 게시글 삭제하기 -->
+	<delete id="delete" parameterType="int">
+		DELETE
+		  FROM BOARD
+		WHERE BOARD_DEVIDE_ID=1
+		  AND BOARD_ID = #{board_id}
+	</delete>
+	
+		
+	<!-- 전사공지 게시물 갯수(페이징관련) -->
+	<select id="listCount" resultType="int">
+		<![CDATA[
+			SELECT COUNT(BOARD_ID)
+			  FROM BOARD
+			 WHERE BOARD_DEVIDE_ID=1 
+			   AND BOARD_ID>0
+		]]>
+	</select>
+	
+	<!-- 페이징 -->
+	<select id="listPage" resultType="sharing" parameterType="com.kh.batterflow.vo.Criteria_vo">
+		SELECT  BOARD_ID
+		            ,BOARD_TITLE
+		            ,USER_NAME
+		            ,BOARD_CREATE_DATE
+		            ,BOARD_CONTENT
+			        ,BOARD_HITS
+           		    ,TOP_FIXED	
+           		    ,ROWNUM      
+		  FROM (
+		             SELECT  BOARD_ID
+                            ,BOARD_TITLE
+                            ,USER_NAME
+                            ,BOARD_CREATE_DATE
+                            ,BOARD_CONTENT
+                            ,BOARD_HITS
+                            ,TOP_FIXED
+                            ,ROWNUM AS RNUM
+              FROM (
+                          SELECT  BOARD_ID
+                                 ,BOARD_TITLE
+                                 ,USER_NAME
+                                 ,BOARD_CREATE_DATE
+                                 ,BOARD_CONTENT
+                                 ,BOARD_HITS
+                                 ,TOP_FIXED                               
+	                        FROM BOARD
+	                        JOIN USERCLIENT
+	                        ON BOARD.USER_ID = USERCLIENT.USER_ID
+	                        WHERE BOARD_DEVIDE_ID=1
+	                        ORDER BY TOP_FIXED DESC, BOARD_ID DESC
+                    )
+                  )
+		  WHERE RNUM BETWEEN #{rowStart} AND #{rowEnd}
+	</select>
+
+	<!-- 검색-제목으로? -->
+	<select id="noticeSearch" resultType="sharing">
+		SELECT  BOARD_ID
+           	   ,BOARD_TITLE
+               ,USER_NAME
+               ,BOARD_CREATE_DATE
+               ,BOARD_CONTENT
+               ,BOARD_HITS
+               ,TOP_FIXED                               
+		  FROM BOARD
+		  JOIN USERCLIENT
+		    ON BOARD.USER_ID = USERCLIENT.USER_ID
+		 WHERE BOARD_DEVIDE_ID=1
+		<if test="board_title !=''">
+		   AND BOARD_TITLE LIKE '%'||#{contentSearch}||'%'
+		</if>
+		 ORDER BY TOP_FIXED DESC, BOARD_ID DESC
+	</select>	
+
+
+
+</mapper>

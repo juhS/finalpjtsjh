@@ -1,0 +1,404 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- DTD 선언 -->
+<!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 
+	mapper라는 영역 안에 구문을 작성한다
+	- namespace : mapper간의 충돌을 방지 하기 위한 이름 (필수)
+-->
+<mapper namespace="document">
+	
+	<!-- result map 사용위해서 사용하는 구문 -->
+	<select id="first_user_info" resultType="user">
+		select * from userclient
+	</select>
+	
+	
+	
+	<!-- userclient resultmap  안쓰는거..-->
+	<resultMap type="user" id="user_id_info">
+	
+	<collection property="list" column="user_id" javaType="java.util.List"
+	ofType="user" select="userList"></collection>
+	</resultMap>
+	
+	<select id="userList" parameterType="int" resultType="user">
+		select * from userclient where user_id = #{user_id}
+	</select>
+	<!-- userclient resultmap  안쓰는거..-->
+	
+	
+	
+	<select id="dept_info" resultType="dept">
+		select * from dept
+	</select>
+	
+	<!-- 수신자 검색  -->
+	<select id="internal_search_result" parameterType="String" resultType="user">
+			select user_id, user_name
+			from (SELECT  * 
+				  FROM USERCLIENT , DEPT , JOB 
+                  WHERE userclient.dept_id = dept.dept_id
+                  and userclient.job_id = job.job_id) ds
+            where (ds.dept_name like '%'||#{internal_search}||'%')
+               or (ds.user_name like '%'||#{internal_search}||'%')
+               or (ds.job_name like '%'||#{internal_search}||'%')
+	</select>
+	
+	
+	<!-- 카테고리 전체 검색 -->
+	<select id="docuCategory" resultType="docucategory">
+			select * from docucategory
+	</select>
+	
+	<!-- 존재하는 모든 양식파일 검색 -->
+	<select id="getDraftFile" resultType="draftfile">
+		     select draft_no,
+    			   draft_title,
+    			   draft_initial_regist_date,
+     			   draft_modify_date,
+    			   draft_explain,
+    			   user_write_id,
+     			   user_update_id,
+    			   docu_cate_id,
+    			   draft_content,
+    			   draft_url,
+   			  	   u.user_name as user_writer_name,
+    			   s.user_name as user_modify_name
+			from draftfile dr , UserClient u, UserClient s
+			where dr.user_write_id = u.user_id
+			and dr.user_update_id = s.user_id
+			and dr.user_write_id = 0
+	</select>
+	
+	<!-- 카테고리에서 클릭한 카테고리의 파일만 가져오기  -->
+	<select id="getCategory_click" resultType="draftfile" parameterType="int">
+		select draft_no,
+    			   draft_title,
+    			   draft_initial_regist_date,
+     			   draft_modify_date,
+    			   draft_explain,
+    			   user_write_id,
+     			   user_update_id,
+    			   docu_cate_id,
+    			   draft_content,
+    			   draft_url,
+   			  	   u.user_name as user_writer_name,
+    			   s.user_name as user_modify_name
+			from draftfile dr , UserClient u, UserClient s
+			where dr.user_write_id = u.user_id
+			and dr.user_update_id = s.user_id
+			and docu_cate_id = #{category_value}
+			and dr.user_write_id = 0
+	</select>
+	
+	<!-- 선택한 카테고리와 정렬을 기준으로 홈페이지에 뽑아주기 -->
+	<select id="getselected_sort_list" resultType="draftfile" parameterType="sort">
+		select draft_no,
+    			   draft_title,
+    			   draft_initial_regist_date,
+     			   draft_modify_date,
+    			   draft_explain,
+    			   user_write_id,
+     			   user_update_id,
+    			   docu_cate_id,
+    			   draft_content,
+    			   draft_url,
+   			  	   u.user_name as user_writer_name,
+    			   s.user_name as user_modify_name
+			from draftfile dr , UserClient u, UserClient s
+			where dr.user_write_id = u.user_id
+			and dr.user_update_id = s.user_id
+			<if test='selected_menu_value == 0'>
+			
+			</if>
+			<if test='selected_menu_value > 0'>
+			and docu_cate_id = #{selected_menu_value}
+			</if>
+			and dr.user_write_id = 0
+			order by ${selected_sort}
+	
+	</select>
+	<!-- 문서별 제목규칙에 따른 문자열 가져오기 -->
+	<select id="getRuleName" resultType="String" parameterType="int">
+		select docu_title_rule_name
+		from drafttitlerulerecord dr, drafttitlerule dt
+		where dr.docu_title_rule_id = dt.docu_title_rule_id
+		and draft_no = #{draft_no}
+		order by dr.docu_title_rule_order
+	</select>
+	
+	<!-- 유저의 직책 가져오기 -->
+	<select id="getUserJob" parameterType="int" resultType="String">
+		select job_name
+		from  userclient, job
+		where userclient.job_id = job.job_id
+		and user_id = #{user_id}
+	</select>
+	
+	
+	<!-- 유저의 부서 가져오기 -->
+	<select id="getUserDept" parameterType="int" resultType="String">
+		select dept_name
+		from  userclient, dept
+		where userclient.dept_id = dept.dept_id
+		and user_id = #{user_id}
+	</select>
+	
+	<!-- 해당하는 문서의 정보를 가져오기 -->
+	<select id="getDocumentInfo" parameterType="int" resultType="draftfile">
+		select * 
+		from draftfile
+		where draft_no = #{draft_no}
+	</select>
+	<!-- 기안서 양식파일 시퀀스 생성 -->
+	<select id="setDcument_draft_no" resultType="int">
+		select DRAFTFILE_SEQ.nextval from dual
+	</select>
+	
+	<!-- 사용자가 기안 눌렀을때 기안서가 저장되기 -->
+	<insert id="insert_draftfile" parameterType="draftfile">
+	insert into draftfile(
+        draft_no,
+        draft_title,
+        draft_initial_regist_date,
+        draft_explain,
+        user_write_id,
+        user_update_id,
+        docu_cate_id,
+        draft_content) 
+    values(
+        #{draft_no},
+        #{draft_title},
+        sysdate,
+        #{draft_explain},
+        #{user_write_id},
+        #{user_update_id},
+        #{docu_cate_id},
+        #{draft_content}
+        )
+	
+	</insert>
+	
+	<!-- draftrecord 번호 생성  -->
+	<select id="newDraftRecord_no" resultType="int">
+		select DRAFTRECORD_SEQ.nextval from dual
+	</select>
+	
+	<!-- draftrecord 등록  -->
+	<insert id="document_record_insert" parameterType="draftrecord">
+		insert into draftrecord
+        (
+        draft_rec_no,
+        draft_rec_title,
+        draft_rec_regist_date,
+        draft_rec_status,
+        draft_no
+        )
+        values
+        (
+        #{draft_rec_no},
+        #{draft_rec_title},
+        sysdate,
+        #{draft_rec_status},
+        #{draft_no}
+        )
+	</insert>
+	
+	<!-- draft_list_record 번호 생성 -->
+	<select id="draft_list_record" resultType="int">
+		select DRAFTLISTRECORD_SEQ.nextval from dual
+	</select>
+	
+	<!-- draft_list_record 등록 -->
+	
+	<insert id="draftListRecordInsert" parameterType="draftlistrecord">
+		insert into draftlistrecord values(
+		#{draft_history_id},
+		#{user_id},
+		sysdate,
+		#{draft_rec_no}
+		)
+	</insert>
+	
+	<!-- Draft_related_person_id 기안서 관련자 시퀀스 생성 -->
+	
+	<select id="Draft_related_person_id" resultType="int">
+		select DRAFTRELATED_SEQ.nextval from dual
+	</select>
+	
+	<insert id="setProcess_user_insert" parameterType="draftrelated">
+		insert into draftrelated values(
+		#{draft_related_person_id},
+		#{draft_separate},
+		#{draft_rec_no},
+		#{user_id},
+		#{draft_related_order}
+		)
+	</insert>
+	
+	
+	<select id="DraftFileIdCreate" resultType="int">
+		select DRAFTATTACH_SEQ.nextval from dual
+	</select>
+	<!-- 첨부파일 인설트  -->
+	<insert id="DraftFileAttachfileInsert" parameterType="draftattach">
+		Insert into draftattach values(
+		#{draft_file_id},
+		#{draft_file_origin_name},
+		#{draft_file_alter_name},
+		#{draft_file_path},
+		#{draft_file_separate},
+		#{draft_rec_no}
+		)
+	</insert>
+	
+	<!-- 내문서보기 초기 값 넣어주는곳 -->
+	<select id="myDraftFile" parameterType="mydraft" resultType="mydraft">
+	   SELECT * 
+  FROM(
+        SELECT ROWNUM AS RNUM, A.*
+            FROM ( select dr.draft_rec_status as draft_rec_status, 
+            dr.draft_rec_title as draft_rec_title , 
+            uu.user_name as  user_write_name,
+            d.draft_initial_regist_date as draft_initial_regist_date , 
+            u.user_name as user_final_name, 
+            dr.draft_rec_final_appr as draft_rec_final_appr,
+            dr.draft_no
+from UserClient u , 
+    draftRecord dr , 
+    (select draft_rec_no, user_id, draft_related_order, last from(
+                     select draftrelated.*, max(draft_related_order) over(partition by draft_rec_no) last from draftrelated
+                        ) where draft_related_order = last
+                        order by Draft_rec_no) dd , 
+    draftfile d,
+    UserClient uu,
+    draftrelated dsr
+where U.user_id = dd.user_id
+    and dd.draft_rec_no = dr.draft_rec_no
+    and dr.draft_no = d.draft_no
+    and dsr.draft_rec_no = dr.draft_rec_no
+    and d.user_write_id = uu.user_id
+    and dsr.user_id =  #{user_id}
+    order by draft_initial_regist_date desc) A
+         WHERE ROWNUM <![CDATA[ <= ]]> #{startindex} + #{pagesize} 
+      )
+ WHERE RNUM > #{startindex}
+ order by  draft_initial_regist_date desc 
+    
+    
+	</select>
+	
+	
+	<!-- 내 문서관리 전체 조회 페이징 -->
+	<select id="selectBoardListCnt" resultType="int" parameterType="int">
+	select count(*)
+from UserClient u , 
+    draftRecord dr , 
+    (select draft_rec_no, user_id, draft_related_order, last from(
+                     select draftrelated.*, max(draft_related_order) over(partition by draft_rec_no) last from draftrelated
+                        ) where draft_related_order = last
+                        order by Draft_rec_no) dd , 
+    draftfile d,
+    UserClient uu,
+    draftrelated dsr
+where U.user_id = dd.user_id
+    and dd.draft_rec_no = dr.draft_rec_no
+    and dr.draft_no = d.draft_no
+    and dsr.draft_rec_no = dr.draft_rec_no
+    and d.user_write_id = uu.user_id
+    and dsr.user_id = #{user_id}
+	</select>
+	
+	
+	<!-- 해당하는 문서의 관련자들 불러오기 -->
+	<select id="getDocumentRelate" parameterType="int" resultType="draftrelated">
+		select dl.draft_separate ,
+        				u.user_name,
+     				    dl.draft_related_order,
+     				    dl.draft_rec_no
+		from draftrecord df, draftrelated dl, userclient u
+		where df.draft_rec_no = dl.draft_rec_no
+		and u.user_id = dl.user_id
+		and draft_no = #{draft_no}
+	</select>
+	
+	<!-- Draft_rec_no 가져오기 -->
+	<select id="getDraft_rec_no" parameterType="int" resultType="int">
+		select draft_rec_no
+		from draftfile d, draftrecord r
+		where d.draft_no = r.draft_no
+		and d.draft_no = #{draft_no}
+	</select>
+	
+	<!-- 해당하는 기록의 첨부파일 정보 가져오기 -->
+	<select id="getDraftFiles" parameterType="int" resultType="draftattach">
+		select *
+		from draftattach
+		where draft_rec_no = #{draft_rec_no}
+	</select>
+	
+	
+	<!-- 해당하는 파일 정보 가져오기 -->
+	<select id="getFileInfo" parameterType="int" resultType="draftattach">
+		select * 
+		from draftattach
+		where draft_file_id = #{file_id}
+	</select>
+	
+	<!-- 기안서를 결재할 사람들 -->
+	<select id="getPayment_People" parameterType="int" resultType="draftrelated">
+	SELECT USER_NAME, 
+       DRAFT_SEPARATE, 
+       DRAFT_RELATED_ORDER,
+       DR.USER_ID
+	FROM DRAFTRELATED DR, 
+    USERCLIENT U
+	WHERE DR.USER_ID = U.USER_ID
+ 	 AND DR.DRAFT_REC_NO = #{draft_rec_no}
+	</select>
+	
+	<!-- 기안서를 결재 한 사람들 -->
+	<select id="getPaymented_People" parameterType="int" resultType="draftlistrecord">
+	SELECT  
+        DRAFT_HISTORY_ID,
+        DR.USER_ID,
+        DRAFT_PAY_DATE,
+        DRAFT_REC_NO,
+        U.USER_NAME
+		FROM DRAFTLISTRECORD DR, 
+    	USERCLIENT U
+	WHERE DR.USER_ID = U.USER_ID
+ 	 AND DR.DRAFT_REC_NO = #{draft_rec_no}
+	</select>
+	
+	
+	<!-- 해당하는 유저가 결재하면 남는 기록 -->
+	<insert id="payment" parameterType="draftlistrecord" >
+	INSERT INTO DRAFTLISTRECORD VALUES(DRAFTLISTRECORD_SEQ.nextval,#{user_id},sysdate,#{draft_rec_no})
+	</insert>
+	
+	<!-- 기안서 기록 업데이트 하는 구문  -->
+	<update id="draftrecordUpdate" parameterType="draftrecord">
+	UPDATE DRAFTRECORD SET DRAFT_REC_STATUS = #{draft_rec_status}, DRAFT_REC_FINAL_APPR = SYSDATE
+	WHERE DRAFT_REC_NO = #{draft_rec_no}
+	</update>
+	
+	<!-- 이 문서가 어떤상태인지 검색하는 코드문  -->
+	<select id="getState" parameterType="int" resultType="string">
+		select draft_rec_status
+		from draftrecord
+		where draft_rec_no = #{draft_rec_no}
+	</select>
+	
+	
+	<!-- 문서상태 반려로 바꾸기 -->
+	<update id="companion" parameterType="int">
+	UPDATE DRAFTRECORD SET DRAFT_REC_STATUS = '반려' WHERE DRAFT_REC_NO = #{draft_rec_no}
+	</update>
+	
+	
+</mapper>

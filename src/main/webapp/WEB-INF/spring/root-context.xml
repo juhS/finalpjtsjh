@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:s="http://www.springframework.org/schema/security"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-5.3.xsd
+		http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-4.3.xsd
+		http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+	
+	<!-- <s:http auto-config="true" use-expressions="true">
+		<s:intercept-url pattern="/resources/**" access="permitAll" />
+		<s:intercept-url pattern="/login" access="isAnonymous()" />
+		<s:intercept-url pattern="/join" access="isAnonymous()" />
+		<s:intercept-url pattern="/" access="isAnonymous()" />
+		<s:intercept-url pattern="/admin/**" access="hasRole('admin')" />
+		<s:form-login
+				username-parameter="user_email"
+				password-parameter="user_pw"
+				login-processing-url="/member/login"
+				login-page="/member/login" default-target-url="/member/home"
+				authentication-failure-url="/member/login" />
+		<s:logout
+				logout-url="/member/logout" 
+				logout-success-url="/"
+				invalidate-session="true"
+				delete-cookies="true" />
+				
+		<s:access-denied-handler error-page="/" />
+	</s:http> -->
+		<!-- <s:authentication-manager>
+			<s:authentication-provider user-service-ref="">
+			</s:authentication-provider>
+		</s:authentication-manager> -->
+		
+	<bean id="loginFailureHandler" class="com.kh.batterflow.security.LoginFailureHandler">
+		<property name="userEmail" value="user_email" />
+		<property name="userPw" value="user_pw" />
+		<property name="errormsgname" value="ERRORMSG" />
+		<property name="defaultFailureUrl" value="/member/login" />
+	</bean>
+
+	
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+		<property name="driverClassName" value="${database.driver}"></property>
+		<property name="url" value="${database.url}"></property>
+		<property name="username" value="${database.username}"></property>
+		<property name="password" value="${database.password}"></property>
+	</bean>
+
+	 <bean id="dataSource2" class="org.apache.commons.dbcp2.BasicDataSource">
+	 	<property name="driverClassName" value="${database.driver}"></property>
+		<property name="url" value="${database.url}"></property>
+		<property name="username" value="${database.username}"></property>
+		<property name="password" value="${database.password}"></property>
+		
+		<property name="maxTotal" value="${dbcp.max-total}"></property>
+		<property name="maxIdle" value="${dbcp.max-idle}"></property>
+		<property name="maxWaitMillis" value="${dbcp.max-wait}"></property>
+	 </bean>
+	
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource" ref="dataSource2"></property>
+	</bean>
+
+	 <bean id="factory" class="org.mybatis.spring.SqlSessionFactoryBean">
+	 	<property name="dataSource" ref="dataSource2"></property>
+	 	<property name="configLocation" value="classpath:/mybatis/mybatis-config.xml" />
+	 	<property name="mapperLocations" value="classpath:/mybatis/mapper/*-mapper.xml"></property>
+	 </bean>
+	 <!-- constructor-arg index="0"의 의미 factory 빈의 생성자 첫번째 인자로 sqlSession 빈을 넣는다는거 -->
+	 <bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+	 	<constructor-arg index="0" ref="factory"></constructor-arg>
+	 </bean>
+	 
+	 <!-- 
+	 	BCrypt 암호화 도구 등록
+	  -->
+	  <bean id="encoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder">
+	  </bean>
+	  
+	  <bean id="sendSMS" class="com.kh.batterflow.member.service.SendSMS">
+	  </bean>
+	  
+	 <context:component-scan base-package="com.kh.batterflow">
+		<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+	 </context:component-scan>
+	 
+	<aop:aspectj-autoproxy />
+	
+	<!-- 
+		prperties 파일을 불러오는 설정
+		- 1. 이름 패턴을 이용해서 유형을 등록하여 모든 설정파일을 불러옴(*-mapper와 비슷)
+		- 경로 설정은 context에서 수행
+		- 2. 파일하나하나당 불러오는 방법
+	 -->
+	 <context:property-placeholder location="classpath:/properties/*.properties"/>
+	
+	<bean id="sender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+	 	<property name="host" value="${email.host}" />
+	 	<property name="port" value="${email.port}" />
+	 	<property name="username" value="${email.username}" />
+	 	<property name="password" value="${email.password}"></property>
+	 	<property name="javaMailProperties">
+	 		<props>
+	 		<prop key="mail.smtp.auth">true</prop>
+	 		<prop key="mail.smtp.starttls.enable">true</prop>
+	 		</props>
+	 	</property>
+	 </bean>
+
+	
+	 <tx:annotation-driven/>
+	 <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+	 	<property name="dataSource" ref="dataSource2"></property>
+	 </bean>
+	  
+</beans>

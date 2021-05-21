@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- DTD 선언 -->
+<!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 
+	mapper라는 영역 안에 구문을 작성한다
+	- namespace : mapper간의 충돌을 방지 하기 위한 이름 (필수)
+-->
+<mapper namespace="member">
+	
+	<!-- 
+		데이터베이스 이용에 필요한 구문을 작성는 영역
+		- 가급적 한 테이블만 접근하도록 구성
+		- CRUD에 맞는 태그를 사용 
+			- C : insert
+			- R : select
+			- U : update
+			- D : delete
+			
+		- id : 외부에서 구문을 호출하기 위한 식별자(namespace와 같이 사용) - 필수
+		- parameterType : 구문 실행을 위해 전달되는 데이터의 형태(별칭 사용 가능, alias)
+		- resultType : 결과물(ResultSet)이 변환될 형태. 단일/목록 모두 단위 형태를 기재
+		
+		- #{name} : 전달되는 데이터 묶음에서 name이라는 이름을 가진 데이터를 형태에 맞게 채워라(동적 바인딩). name은 변할 수 있음
+	-->
+	
+	<insert id="join" parameterType="user">
+		INSERT INTO 
+		USERCLIENT(
+		  USER_ID, USER_NAME, USER_INTRO, USER_SKILL,
+		  USER_DETAIL, USER_PHONE, USER_TELPHONE, USER_ADDRESS,
+		  USER_BIRTH, USER_GENDER, USER_MARRY, USER_STATUS,
+		  USER_JOIN_DATE, USER_DETAIL_JOB, USER_JOB, USER_PW,
+		  USER_EMAIL, DEPT_ID, AUTHOR_ID, EMP_TYPE_ID,
+		  JOB_ID, CP_ID
+		) VALUES (
+			USERCLIENT_SEQ.NEXTVAL, #{user_name}, #{user_intro}, #{user_skill}, 
+			#{user_detail}, #{user_phone}, #{user_telphone}, #{user_address}, 
+			#{user_birth}, #{user_gender}, #{user_marry}, #{user_status},
+			SYSDATE, #{user_detail_job}, #{user_job}, #{user_pw},
+			#{user_email}, #{dept_id}, #{author_id}, #{emp_type_id},
+			#{job_id}, #{cp_id}
+		)
+
+	</insert>
+	
+	<select id="login" parameterType="user" resultType="user">
+		SELECT *
+		FROM USERCLIENT
+		WHERE USER_EMAIL = #{user_email}
+	</select>
+	
+	<select id="find" parameterType="string" resultType="int">
+		SELECT COUNT(*) 
+		FROM USERCLIENT
+		WHERE USER_EMAIL = #{email}
+	</select>
+	
+	<select id="findwithphone" parameterType="string" resultType="user">
+		SELECT * 
+		FROM USERCLIENT
+		WHERE USER_TELPHONE = #{string}
+	</select>
+	
+	<select id="findwithemail" parameterType="string" resultType="user">
+		SELECT *
+		FROM USERCLIENT
+		WHERE USER_EMAIL = #{string}
+	</select>
+	
+</mapper>

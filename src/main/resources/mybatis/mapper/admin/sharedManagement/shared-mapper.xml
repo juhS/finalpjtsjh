@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- DTD 선언 -->
+<!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 
+	mapper라는 영역 안에 구문을 작성한다
+	- namespace : mapper간의 충돌을 방지 하기 위한 이름 (필수)
+-->
+<mapper namespace="shared">
+	
+	<!-- 
+		데이터베이스 이용에 필요한 구문을 작성는 영역
+		- 가급적 한 테이블만 접근하도록 구성
+		- CRUD에 맞는 태그를 사용 
+			- C : insert
+			- R : select
+			- U : update
+			- D : delete
+			
+		- id : 외부에서 구문을 호출하기 위한 식별자(namespace와 같이 사용) - 필수
+		- parameterType : 구문 실행을 위해 전달되는 데이터의 형태(별칭 사용 가능, alias)
+		- resultType : 결과물(ResultSet)이 변환될 형태. 단일/목록 모두 단위 형태를 기재
+		
+		- #{name} : 전달되는 데이터 묶음에서 name이라는 이름을 가진 데이터를 형태에 맞게 채워라(동적 바인딩). name은 변할 수 있음
+	-->
+	<!-- docuCategory_vo 가져온다 문서등록에서 쓸거 -->
+	<select id="cateList" resultType="docucategory">
+	SELECT DOCU_CATE_ID
+	     , DOCU_CATE_NAME
+	     , DEFAULT_OR_NEW
+	     , UNDER_CATEGORY
+	  FROM DOCUCATEGORY
+	 WHERE DEFAULT_OR_NEW = 'N'
+	</select>
+	
+	<!-- draftFile_vo 가져온다 삭제안되는 기본파일양식 -->
+	<select id="draftList" resultType="draftfile">
+	SELECT DRAFT_NO
+	     , DRAFT_TITLE
+	     , DRAFT_INITIAL_REGIST_DATE
+	     , DRAFT_MODIFY_DATE
+	     , DRAFT_EXPLAIN
+	     , USER_WRITE_ID
+	     , USER_UPDATE_ID
+	     , DOCU_CATE_ID
+	     , DRAFT_CONTENT
+	     , DRAFT_URL
+	     , DEFAULT_DOCU
+	  FROM DRAFTFILE
+	 WHERE DEFAULT_DOCU = 'Y'
+	</select>
+	
+	<!-- 카테고리중 한가지만 가져옴 -->
+	<select id="reportCategory" resultType="docucategory" parameterType="map">
+	SELECT DOCU_CATE_ID
+	     , DOCU_CATE_NAME
+	     , DEFAULT_OR_NEW
+	     , UNDER_CATEGORY
+	  FROM DOCUCATEGORY
+	 WHERE DOCU_CATE_NAME = #{divText}
+	   AND DEFAULT_OR_NEW = 'Y'
+	</select>
+	
+	<!-- 한개의 카테고리에 해당하는 기안서만 가져옴 -->
+	<select id="reportDraftList" resultType="draftfile" parameterType="docucategory">
+	SELECT DRAFT_NO
+	     , DRAFT_TITLE
+	     , DRAFT_INITIAL_REGIST_DATE
+	     , DRAFT_MODIFY_DATE
+	     , DRAFT_EXPLAIN
+	     , USER_WRITE_ID
+	     , USER_UPDATE_ID
+	     , DOCU_CATE_ID
+	     , DRAFT_CONTENT
+	     , DRAFT_URL
+	     , DEFAULT_DOCU
+	  FROM DRAFTFILE
+	 WHERE DOCU_CATE_ID = #{docu_cate_id}
+	   AND DEFAULT_DOCU = 'Y'
+	</select>
+	
+	<!-- 부서 id가지고 해당하는 부서 찾기 -->
+	<select id="docuCateSelectName" parameterType="int" resultType="docucategory">
+		SELECT DOCU_CATE_ID
+		     , DOCU_CATE_NAME
+		     , DEFAULT_OR_NEW
+		     , UNDER_CATEGORY
+		  FROM DOCUCATEGORY
+		 WHERE DOCU_CATE_ID = #{cateNum}
+		   AND DEFAULT_OR_NEW = 'N'
+	</select>
+	
+	<!-- 기안서 번호가지고 그에 해당하는 기안서 하나 조회 -->
+	<select id="draftSelectNo" resultType="draftfile" parameterType="map">
+		SELECT DRAFT_NO
+	     	 , DRAFT_TITLE
+	    	 , DRAFT_INITIAL_REGIST_DATE
+	    	 , DRAFT_MODIFY_DATE
+	    	 , DRAFT_EXPLAIN
+	    	 , USER_WRITE_ID
+	    	 , USER_UPDATE_ID
+	    	 , DOCU_CATE_ID
+	    	 , DRAFT_CONTENT
+	    	 , DRAFT_URL
+	    	 , DEFAULT_DOCU
+		  FROM DRAFTFILE
+		 WHERE DRAFT_NO = #{checkedDraftNo.no}
+	</select>
+	
+	<!-- 한개의 카테고리안에 한개의 기안서가 들어있는지 확인하는 조회하는 쿼리-->
+	<select id="docuDraftIsCate" resultType="docucategory" parameterType="map">
+		SELECT DRAFT_NO
+	     	 , DRAFT_TITLE
+	    	 , DRAFT_INITIAL_REGIST_DATE
+	    	 , DRAFT_MODIFY_DATE
+	    	 , DRAFT_EXPLAIN
+	    	 , USER_WRITE_ID
+	    	 , USER_UPDATE_ID
+	    	 , DOCU_CATE_ID
+	    	 , DRAFT_CONTENT
+	    	 , DRAFT_URL
+	    	 , DEFAULT_DOCU
+		  FROM DRAFTFILE
+		 WHERE DOCU_CATE_ID = #{cateAndDraftMap.docuCate}
+		   AND DRAFT_NO = #{cateAndDraftMap.docuDraft}
+	</select>
+	
+	<!-- 부서이름을 넣은 기안서 추가 -->
+	<insert id="draftCategoryInsert" parameterType="map">
+		INSERT INTO DRAFTFILE(
+			DRAFT_NO, DRAFT_TITLE, DRAFT_INITIAL_REGIST_DATE,
+			DRAFT_MODIFY_DATE, DRAFT_EXPLAIN, USER_WRITE_ID,
+			USER_UPDATE_ID, DOCU_CATE_ID, DRAFT_CONTENT,
+			DRAFT_URL, DEFAULT_DOCU
+		)
+		VALUES(
+			DRAFTFILE_SEQ.NEXTVAL, #{draftFileVo.draft_title}, SYSDATE,
+			NULL, '설명없음', 0,
+			0, #{cateNum}, '내용없음',
+			NULL, 'N'
+		)
+	</insert>
+	
+	<select id="cateWithDraftCount" resultType="int" parameterType="map">
+		SELECT COUNT(*)
+		  FROM DRAFTFILE
+		 WHERE DRAFT_TITLE = #{draftFileVo.draft_title}
+		   AND DOCU_CATE_ID = #{cateNum}
+	</select>
+	
+</mapper>

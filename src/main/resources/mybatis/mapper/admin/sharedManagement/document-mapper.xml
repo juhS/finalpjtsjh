@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- DTD 선언 -->
+<!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="adminDocu">
+	
+	<!-- docuCategory_vo 가져온다 삭제 안되는 문서 카테고리 -->
+	<select id="cateList" resultType="docucategory">
+	SELECT DOCU_CATE_ID
+	     , DOCU_CATE_NAME
+	     , DEFAULT_OR_NEW
+	     , UNDER_CATEGORY
+	  FROM DOCUCATEGORY
+	 WHERE DEFAULT_OR_NEW = 'Y'
+	</select>
+	
+	<!-- draftFile_vo 기존에 있는 문서만 가져온다 -->
+	<select id="draftList" resultType="draftfile">
+	SELECT DRAFT_NO
+	     , DRAFT_TITLE
+	     , DRAFT_INITIAL_REGIST_DATE
+	     , DRAFT_MODIFY_DATE
+	     , DRAFT_EXPLAIN
+	     , USER_WRITE_ID
+	     , USER_UPDATE_ID
+	     , DOCU_CATE_ID
+	     , DRAFT_CONTENT
+	     , DRAFT_URL
+	     , DEFAULT_DOCU
+	  FROM DRAFTFILE
+	 WHERE DEFAULT_DOCU = 'Y'
+	</select>
+	
+	<!-- draftFile_vo 추가된 기안서만 가져온다 -->
+	<select id="draftListNew" resultType="draftfile">
+	SELECT DRAFT_NO
+	     , DRAFT_TITLE
+	     , DRAFT_INITIAL_REGIST_DATE
+	     , DRAFT_MODIFY_DATE
+	     , DRAFT_EXPLAIN
+	     , USER_WRITE_ID
+	     , USER_UPDATE_ID
+	     , DOCU_CATE_ID
+	     , DRAFT_CONTENT
+	     , DRAFT_URL
+	     , DEFAULT_DOCU
+         , UC1.USER_NAME AS USER_WRITER_NAME
+         , UC2.USER_NAME AS USER_MODIFY_NAME
+	  FROM DRAFTFILE DF
+      JOIN USERCLIENT UC1 ON(DF.USER_WRITE_ID = UC1.USER_ID)
+      JOIN USERCLIENT UC2 ON(DF.USER_UPDATE_ID = UC2.USER_ID)
+	 WHERE DEFAULT_DOCU = 'N'
+	 ORDER BY DRAFT_INITIAL_REGIST_DATE DESC
+	</select>
+	
+	<select id="draftWithCateListNew" resultType="draftfile" parameterType="map">
+	SELECT DRAFT_NO
+	     , DRAFT_TITLE
+	     , DRAFT_INITIAL_REGIST_DATE
+	     , DRAFT_MODIFY_DATE
+	     , DRAFT_EXPLAIN
+	     , USER_WRITE_ID
+	     , USER_UPDATE_ID
+	     , DOCU_CATE_ID
+	     , DRAFT_CONTENT
+	     , DRAFT_URL
+	     , DEFAULT_DOCU
+         , UC1.USER_NAME AS USER_WRITER_NAME
+         , UC2.USER_NAME AS USER_MODIFY_NAME
+	  FROM DRAFTFILE DF
+      JOIN USERCLIENT UC1 ON(DF.USER_WRITE_ID = UC1.USER_ID)
+      JOIN USERCLIENT UC2 ON(DF.USER_UPDATE_ID = UC2.USER_ID)
+	 WHERE DEFAULT_DOCU = 'N'
+	   AND DOCU_CATE_ID = #{cateId}
+	 ORDER BY DRAFT_INITIAL_REGIST_DATE DESC
+	</select>
+	
+	<select id="cateListNew" resultType="docucategory">
+	SELECT DOCU_CATE_ID
+	     , DOCU_CATE_NAME
+	     , DEFAULT_OR_NEW
+	     , UNDER_CATEGORY
+	  FROM DOCUCATEGORY
+	 WHERE DEFAULT_OR_NEW = 'N'
+	 ORDER BY UNDER_CATEGORY DESC
+	</select>
+	
+	<select id="cateDefault" resultType="docucategory">
+	SELECT DOCU_CATE_ID
+	     , DOCU_CATE_NAME
+	     , DEFAULT_OR_NEW
+	     , UNDER_CATEGORY
+	  FROM DOCUCATEGORY
+	 WHERE DOCU_CATE_ID = 0
+	</select>
+	
+	
+	<!-- ajax 관련 매퍼 -->
+	<update id="changeDefaultName" parameterType="map">
+	UPDATE DOCUCATEGORY
+	   SET DOCU_CATE_NAME = #{changeName}
+	 WHERE DOCU_CATE_ID = #{selectId}
+	</update>
+	
+	<insert id="newCateNameAdd" parameterType="map">
+	INSERT INTO DOCUCATEGORY(
+        DOCU_CATE_ID, DOCU_CATE_NAME,
+        DEFAULT_OR_NEW, UNDER_CATEGORY
+     ) VALUES(
+        DOCUCATEGORY_SEQ.NEXTVAL, #{newName},
+        'N', #{topLevelId}
+     )
+	</insert>
+	
+	<!-- 문서 카테고리 삭제 -->
+	<delete id="delCategory" parameterType="map">
+	DELETE FROM DOCUCATEGORY
+	 WHERE DOCU_CATE_ID = #{divId}
+	   AND DEFAULT_OR_NEW = 'N'
+	</delete>
+	
+	<!-- 2번째 하위 문서 카테고리 삭제 -->
+	<delete id="delSecondCategory" parameterType="map">
+	DELETE FROM DOCUCATEGORY
+	WHERE DOCU_CATE_NAME = #{divName}
+	  AND DEFAULT_OR_NEW = 'N'
+	  AND UNDER_CATEGORY = #{divId}
+	</delete>
+	
+	<select id="duplicateCheck" parameterType="map" resultType="docucategory">
+	SELECT DOCU_CATE_ID
+	     , DOCU_CATE_NAME
+	     , DEFAULT_OR_NEW
+	     , UNDER_CATEGORY
+	  FROM DOCUCATEGORY
+	 WHERE DOCU_CATE_NAME = #{newName}
+	   AND DEFAULT_OR_NEW = 'N'
+	   AND UNDER_CATEGORY = #{topLevelId}
+	</select>
+	
+	<select id="duplicateCheckWithName" parameterType="map" resultType="docucategory">
+	SELECT DOCU_CATE_ID
+	     , DOCU_CATE_NAME
+	     , DEFAULT_OR_NEW
+	     , UNDER_CATEGORY
+	  FROM DOCUCATEGORY
+	 WHERE DOCU_CATE_NAME = #{changeName}
+	   AND DEFAULT_OR_NEW = 'N'
+	</select>
+	
+	<select id="userClientAll" resultType="user">
+	SELECT USER_ID
+		 , USER_NAME
+		 , USER_INTRO
+		 , USER_SKILL
+		 , USER_DETAIL
+		 , USER_PHONE
+		 , USER_TELPHONE
+		 , USER_ADDRESS
+		 , USER_BIRTH
+		 , USER_GENDER
+		 , USER_MARRY
+		 , USER_STATUS
+		 , USER_JOIN_DATE
+		 , USER_DETAIL_JOB
+		 , USER_JOB
+		 , DEPT_ID
+		 , AUTHOR_ID
+		 , EMP_TYPE_ID
+		 , JOB_ID
+		 , CP_ID
+		 , USER_PW
+		 , USER_EMAIL
+	  FROM USERCLIENT
+	</select>
+	
+	<select id="draftFileSeq" resultType="int">
+	SELECT DRAFTFILE_SEQ.NEXTVAL 
+	  FROM DUAL
+	</select>
+	
+	<insert id="draftCopyAfterInsert" parameterType="map">
+	INSERT INTO DRAFTFILE(
+		DRAFT_NO, DRAFT_TITLE, DRAFT_INITIAL_REGIST_DATE,
+		DRAFT_MODIFY_DATE, DRAFT_EXPLAIN, USER_WRITE_ID,
+		USER_UPDATE_ID, DOCU_CATE_ID, DRAFT_CONTENT,
+		DRAFT_URL, DEFAULT_DOCU
+	) VALUES(
+		#{draftPkNum}, #{draftTitle}, SYSDATE,
+		SYSDATE, #{draftExplain}, #{writerId},
+		#{modifyId}, #{cateId}, '내용없음',
+		NULL, 'N'
+	)
+	</insert>
+	
+	<select id="draftCopyAfterSelect" parameterType="int" resultType="draftfile">
+	SELECT DRAFT_NO
+	     , DRAFT_TITLE
+	     , DRAFT_INITIAL_REGIST_DATE
+	     , DRAFT_MODIFY_DATE
+	     , DRAFT_EXPLAIN
+	     , USER_WRITE_ID
+	     , USER_UPDATE_ID
+	     , DOCU_CATE_ID
+	     , DRAFT_CONTENT
+	     , DRAFT_URL
+	     , DEFAULT_DOCU
+         , UC1.USER_NAME AS USER_WRITER_NAME
+         , UC2.USER_NAME AS USER_MODIFY_NAME
+	  FROM DRAFTFILE DF
+      JOIN USERCLIENT UC1 ON(DF.USER_WRITE_ID = UC1.USER_ID)
+      JOIN USERCLIENT UC2 ON(DF.USER_UPDATE_ID = UC2.USER_ID)
+	 WHERE DEFAULT_DOCU = 'N'
+	   AND DRAFT_NO = #{pkNum}
+	</select>
+	
+	<select id="draftTitleRuleLoad" resultType="draftTitleRule">
+	SELECT * FROM DRAFTTITLERULE
+	</select>
+	
+	<select id="titleRuleOrder" resultType="draftTitleRuleRecord">
+	SELECT * FROM DRAFTTITLERULERECORD
+	</select>
+	
+	<update id="titleRuleOrderUpdate" parameterType="string">
+	UPDATE DRAFTTITLERULERECORD 
+	   SET DOCU_TITLE_RULE_ORDER = #{orderText}
+	</update>
+	
+	<select id="docuTemplateSelect" parameterType="string" resultType="draftTemplate">
+	SELECT DRAFT_NO
+	     , DRAFT_TITLE
+	     , DRAFT_INITIAL_REGIST_DATE
+	     , DRAFT_MODIFY_DATE
+	     , DRAFT_EXPLAIN
+	     , USER_WRITE_ID
+	     , USER_UPDATE_ID
+	     , DOCU_CATE_ID
+	     , DRAFT_CONTENT
+	     , DRAFT_URL
+	     , DEFAULT_DOCU
+	     , UC.USER_NAME AS USER_WRITER_NAME
+	     , J.JOB_NAME
+	     , DEPT_NAME
+	  FROM DRAFTFILE DF
+	  JOIN USERCLIENT UC ON(DF.USER_WRITE_ID = UC.USER_ID)
+	  JOIN DEPT DT ON(DT.DEPT_ID = UC.DEPT_ID)
+	  JOIN JOB J ON(J.JOB_ID = UC.JOB_ID)
+	 WHERE DRAFT_NO = #{draft_id}
+	   AND DEFAULT_DOCU = 'N'
+	</select>
+	
+	<update id="draftExplainUpdate" parameterType="map">
+	UPDATE DRAFTFILE 
+	   SET DRAFT_EXPLAIN = #{textAreaVal}
+	 WHERE DRAFT_NO = #{draftNo}
+	</update>
+	
+	<update id="draftFileUpdate" parameterType="map">
+	UPDATE DRAFTFILE 
+	   SET DRAFT_EXPLAIN = #{draftExplain},
+	   DRAFT_TITLE = #{draftTitle}
+	 WHERE DRAFT_NO = #{draftNo}
+	</update>
+</mapper>

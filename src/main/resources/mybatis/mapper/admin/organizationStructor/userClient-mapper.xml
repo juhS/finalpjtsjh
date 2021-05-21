@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!-- DTD 선언 -->
+<!DOCTYPE mapper
+ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+ "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 
+	mapper라는 영역 안에 구문을 작성한다
+	- namespace : mapper간의 충돌을 방지 하기 위한 이름 (필수)
+-->
+<mapper namespace="userClient">
+	
+	<insert id="insert" parameterType="user">
+		INSERT INTO USERCLIENT (user_name, user_email, dept_id, job_id, user_id, user_join_date, author_id, emp_type_id)
+		VALUES (#{user_name}, #{user_email}, #{dept_id}, #{job_id}, userclient_SEQ.nextval, #{user_join_date},#{author_id}, #{emp_type_id})
+	</insert>
+	
+					<!-- 별칭	 -->
+	<!-- join테이블 	 -->
+	<select id="list" resultType="user">
+		select * from userclient u  join authority au on (u.author_id = au.author_id)
+	</select>
+	
+	<delete id="delete" parameterType="int">
+		delete from userclient where user_id =#{user_id}
+	</delete>
+	
+	<select id="search" resultType="user" parameterType="user">
+		select * from userclient 
+		
+	<where>
+		<if test="user_name != null and job_id != null">
+		
+		AND
+		<choose>
+		
+		<when test="user_name !='' and job_id==0"> <!-- 이름으로만 검색 -->
+			user_name like '%'||#{user_name}||'%' 
+		</when>
+		<when test="user_name =='' and job_id!=0">
+			job_id = #{job_id}
+		</when>
+		<when test="user_name !='' and job_id != 0">
+			user_name like '%'||#{user_name}||'%' and job_id = #{job_id}
+		</when>
+		
+		</choose>
+		</if>
+		</where>	
+	</select>
+	
+	<select id="list_tb" resultType="user">
+		select * from userclient uc inner join authority au on (uc.author_id = au.author_id) inner join dept dt on (uc.dept_id = dt.dept_id)
+	</select>
+	
+	<update id="edit" parameterType="user">
+		update userclient set user_email = #{user_email} where user_id = #{user_id}
+	</update>
+</mapper>
